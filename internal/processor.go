@@ -5,7 +5,6 @@ import (
 	"log"
 	"math/big"
 	"time"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/core/types"
 )
@@ -27,14 +26,22 @@ func ProcessBlocks(cfg Configuration){
 		log.Fatalf("Error getting latest block: %v\n", err)
 	}
 
-	fc := FilterChain{filters: make([]TransactionFilter, 0)}
+	fc := FilterChain{or: false, filters: make([]TransactionFilter, 0)}
 	for _, a := range cfg.FromAccounts {
-		log.Printf("Adding a selector for txn from %s", a)
-		fc.filters = append(fc.filters, SourceFilter{chainId: *(big.NewInt(1)), from: common.HexToAddress(a)})
+		log.Printf("Adding a Source selector for txn from %s", a)
+		sf, err := NewSourceFilter(1, *(big.NewInt(1)), a)
+		if err != nil {
+			log.Fatalf("Error creating SourceFilter: %v", err)
+		}
+		fc.filters = append(fc.filters, sf)
 	}
 	for _, a := range cfg.ToAccounts {
-		log.Printf("Adding a selector for txn to %s", a)
-		fc.filters = append(fc.filters, DestinationFilter{chainId: *(big.NewInt(1)), to: common.HexToAddress(a)})
+		log.Printf("Adding a Destination selector for txn to %s", a)
+		df, err := NewDestinationFilter(1, *(big.NewInt(1)), a)
+		if err != nil {
+			log.Fatalf("Error creating DestinationFilter: %v", err)
+		}
+		fc.filters = append(fc.filters, df)
 	}
 	fc.filters = append(fc.filters, DateFilter{start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC), end: time.Date(2020, time.December, 31, 23, 59, 59, 0, time.UTC)})
 

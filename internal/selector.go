@@ -72,9 +72,9 @@ type SourceFilter struct {
 
 func NewSourceFilter(ver int, id big.Int, addr string) (*SourceFilter, error) {
 	if ver != 1 {
-		return nil, fmt.Errorf("Chain version %d not supported.", ver)
+		return nil, fmt.Errorf("NewSourceFilter: Chain version %d not supported.", ver)
 	}
-	from :=  common.HexToAddress(addr)
+	from := common.HexToAddress(addr)
 	return &SourceFilter{chainVersion: ver, chainId: id, from: from}, nil
 }
 
@@ -100,7 +100,18 @@ type DestinationFilter struct {
 	to				common.Address
 }
 
+func NewDestinationFilter(ver int, id big.Int, addr string) (*DestinationFilter, error) {
+	if ver != 1 {
+		return nil, fmt.Errorf("NewDestinationFilter: Chain version %d not supported.", ver)
+	}
+	to := common.HexToAddress(addr)
+	return &DestinationFilter{chainVersion: ver, chainId: id, to: to}, nil
+}
+
 func compMessageDest(msg EthMessage, addr common.Address) bool {
+	if msg.To() == nil {
+		return false
+	}
 	return msg.To().Hex() == addr.Hex()
 }
 
