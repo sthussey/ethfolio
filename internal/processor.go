@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-func ProcessBlocks(cfg Configuration){
+func ProcessBlocks(cfg Configuration, metrics MetricDefinitions){
 	ctx, _ := context.WithCancel(context.Background())
 
 	client, err := ethclient.DialContext(ctx, "http://127.0.0.1:8545")
@@ -43,18 +43,21 @@ func ProcessBlocks(cfg Configuration){
 		}
 		fc.filters = append(fc.filters, df)
 	}
-	fc.filters = append(fc.filters, DateFilter{start: time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC), end: time.Date(2020, time.December, 31, 23, 59, 59, 0, time.UTC)})
+	fc.filters = append(fc.filters, DateFilter{start: time.Date(2021, time.January, 1, 0, 0, 0, 0, time.UTC), end: time.Date(2021, time.December, 31, 23, 59, 59, 0, time.UTC)})
 
 	for blockTime := time.Unix((int64)(latestBlock.Time()), 0); blockTime.Equal(cfg.BlocksSince) || blockTime.After(cfg.BlocksSince); {
 		blockTxns := latestBlock.Transactions()
 		for _, t := range blockTxns {
 			qual, err := fc.QualifyTransaction(latestBlock, t)
+			metrics.txns_processed.Inc()
 			if err != nil {
 				log.Printf("Error qualifying txn %h: %v", t.Hash(), err)
 			} else if qual {
 				log.Printf("Transaction %h qualifies for lot.", t.Hash())
 			}
 		}
+		metrics.blocks_processed.Inc()
+		metrics.last_block_completed.Set(float64(latestBlock.Number().Int64()))
 		latestBlock, err = client.BlockByNumber(ctx, big.NewInt(latestBlock.Number().Int64()-1))
 		if err != nil {
 			log.Fatalf("Error finding parent block: %v\n", err)
